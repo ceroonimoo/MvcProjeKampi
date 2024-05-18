@@ -19,7 +19,7 @@ namespace BusinessLayerr.Concrete
         }
         public void ContentAdd(Content content)
         {
-            throw new NotImplementedException();
+            _contentdal.İnsert(content);
         }
 
         public void ContentDelete(Content content)
@@ -37,14 +37,19 @@ namespace BusinessLayerr.Concrete
             throw new NotImplementedException();
         }
 
-        public List<Content> GetList()
+        public List<Content> GetList(string p)
         {
-            throw new NotImplementedException();
+            return _contentdal.List(x=>x.ContentValue.Contains(p));
         }
 
         public List<Content> GetListByHeadingID(int id)
         {
             return _contentdal.List(x=>x.HeadingID==id);
+        }
+
+        public List<Content> GetListByWriter(int id)
+        {
+            return _contentdal.List(x => x.WriterID == id);
         }
     }
 }

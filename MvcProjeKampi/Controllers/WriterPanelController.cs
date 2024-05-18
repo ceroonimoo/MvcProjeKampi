@@ -1,4 +1,5 @@
 ﻿using BusinessLayerr.Concrete;
+using DataAccesssLayer.Concrete;
 using DataAccesssLayer.EntityFramework;
 using EntityLayer.Concrete;
 using System;
@@ -7,6 +8,10 @@ using System.Linq;
 using System.Web;
 using System.Web.Configuration;
 using System.Web.Mvc;
+using PagedList;
+using PagedList.Mvc;
+using BusinessLayerr.ValidationRules;
+using FluentValidation.Results;
 
 namespace MvcProjeKampi.Controllers
 {
@@ -14,15 +19,43 @@ namespace MvcProjeKampi.Controllers
     {
         CategoryManager cm = new CategoryManager(new EfCategoryDal());
         HeadingManager hm = new HeadingManager(new EfHeadingDal());
+        WriterManager wm= new WriterManager(new EfWriterDal());
         // GET: WriterPanel
-        public ActionResult WriterProfile()
+        //int writeridinfo;
+        Context c = new Context();
+        [HttpGet]
+        public ActionResult WriterProfile(int id=0)
         {
+            string p = (string)Session["WriterMail"];
+            id = c.Writers.Where(x => x.WriterMail == p).Select(y => y.WriterID).FirstOrDefault();
+            var writervalue = wm.GetById(id);
+            return View(writervalue);
+        }
+        [HttpPost]
+        public ActionResult WriterProfile(Writer p)
+        {
+            WriterValidator writervalidator = new WriterValidator();
+            ValidationResult results = writervalidator.Validate(p); //fluentvalidation ile kullanılacak
+            if (results.IsValid)
+            {
+                wm.WriterUpdate(p);
+                return RedirectToAction("AllHeading","WriterPanel");
+            }
+            else
+            {
+                foreach (var item in results.Errors)
+                {
+                    ModelState.AddModelError(item.PropertyName, item.ErrorMessage);
+                }
+            }
             return View();
         }
-        public ActionResult MyHeading()
+        public ActionResult MyHeading(string p)
         {
-
-            var values = hm.GetListByWriter();
+           
+            p = (string)Session["WriterMail"];
+            var writeridinfo=c.Writers.Where(x=>x.WriterMail==p).Select(y=>y.WriterID).FirstOrDefault();
+            var values = hm.GetListByWriter(writeridinfo);
             return View(values);
         }
         [HttpGet]
@@ -40,8 +73,10 @@ namespace MvcProjeKampi.Controllers
         [HttpPost]
         public ActionResult NewHeading(Heading p)
         {
+            string writermailinfo = (string)Session["WriterMail"];
+            var writeridinfo = c.Writers.Where(x => x.WriterMail == writermailinfo).Select(y => y.WriterID).FirstOrDefault();
             p.HeadingDate = DateTime.Parse(DateTime.Now.ToShortDateString());
-            p.WriterID = 4;
+            p.WriterID = writeridinfo;
             p.HeadingStatus = true;
             hm.HeadingAdd(p);
             return RedirectToAction("MyHeading");
@@ -65,6 +100,19 @@ namespace MvcProjeKampi.Controllers
             hm.HeadingUpdate(p);
             return RedirectToAction("MyHeading");
         }
+        public ActionResult DeleteHeading(int id)
+        {
+            var HeadingValue = hm.GetByID(id);
+            HeadingValue.HeadingStatus = false;
+            hm.HeadingDelete(HeadingValue);
+            return RedirectToAction("MyHeading");
+        }
+        public ActionResult AllHeadings(int p=1)
+        {
+            var headings = hm.GetList().ToPagedList(p,4);
+            return View(headings);
+        }
+
     }
 }
  //< customErrors mode = "On" >

@@ -16,16 +16,17 @@ namespace MvcProjeKampi.Controllers
     {
         // GET: Message
         MessageManager mm = new MessageManager(new EfMessageDal());
-        MessageValidator messagevalidator= new MessageValidator();
+        MessageValidator messagevalidator = new MessageValidator();
 
-        public ActionResult Inbox() //contactcontroller indexinde gelen mesajlar inboxla tutulduğu için
+        [Authorize]
+        public ActionResult Inbox(string p) //contactcontroller indexinde gelen mesajlar inboxla tutulduğu için
         {
-            var messageList = mm.GetListInbox();
+            var messageList = mm.GetListInbox(p);
             return View(messageList);
         }
-        public ActionResult Sendbox() 
-        { 
-            var messageList= mm.GetListSendbox();
+        public ActionResult Sendbox(string p)
+        {
+            var messageList = mm.GetListSendbox(p);
             return View(messageList);
         }
         public ActionResult GetInboxMessageDetails(int id)
@@ -39,18 +40,21 @@ namespace MvcProjeKampi.Controllers
             return View(values);
         }
         [HttpGet]
-        public ActionResult NewMessage() 
+        public ActionResult NewMessage()
         {
             return View();
         }
         [HttpPost]
-        public ActionResult NewMessage(Message p) 
+        public ActionResult NewMessage(Message p)
         {
 
             ValidationResult results = messagevalidator.Validate(p); //fluentvalidation ile kullanılacak
+
             if (results.IsValid)
             {
-                p.MessageDate=DateTime.Parse(DateTime.Now.ToShortDateString());
+                var sender = Session["usermail"];
+                p.SenderMail = sender.ToString();
+                p.MessageDate = DateTime.Parse(DateTime.Now.ToShortDateString());
                 mm.MessageAdd(p);
                 return RedirectToAction("Sendbox");
             }
